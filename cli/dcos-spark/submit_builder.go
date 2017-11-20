@@ -3,14 +3,12 @@ package main
 import (
 	"bufio"
 	"bytes"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/mesosphere/dcos-commons/cli/client"
 	"github.com/mesosphere/dcos-commons/cli/config"
 	"gopkg.in/alecthomas/kingpin.v3-unstable"
-	"io/ioutil"
 	"log"
 	"net/url"
 	"os"
@@ -300,7 +298,7 @@ func parseApplicationFile(args *sparkArgs) error {
 
 func cleanUpSubmitArgs(argsStr string, boolVals []*sparkVal) ([]string, []string) {
 
-  // collapse two or more spaces to one.
+    // collapse two or more spaces to one.
 	argsCompacted := collapseSpacesPattern.ReplaceAllString(argsStr, " ")
 	// clean up any instances of shell-style escaped newlines: "arg1\\narg2" => "arg1 arg2"
 	argsCleaned := strings.TrimSpace(backslashNewlinePattern.ReplaceAllLiteralString(argsCompacted, " "))
@@ -345,7 +343,7 @@ ARGLOOP:
 		// 2. we start with "--"
 		// 3. we don't already contain "=" (already joined)
 		// 4. we aren't a boolean value (no val to join)
-		if i < len(args)-1 && strings.HasPrefix(arg, "--") && !strings.Contains(arg, "=") {
+		if i < len(args)-1 && strings.HasPrefix(arg, "--") && !strings.Contains(arg, "=") && strings.HasSuffix(arg, "'") {
 			// check for boolean:
 			for _, boolVal := range boolVals {
 				if boolVal.flagName == arg[2:] {
@@ -434,6 +432,12 @@ func appendToProperty(propValue, toAppend string, args *sparkArgs) {
 		args.properties[propValue] += "," + toAppend
 	}
 }
+
+func splitCleanedArgString(argsString string) []string {
+	log.Printf("Got args %s", argsString)
+	return strings.Split(argsString, " ")
+}
+
 
 func buildSubmitJson(cmd *SparkCommand) (string, error) {
 	// first, import any values in the provided properties file (space separated "key val")

@@ -1,6 +1,9 @@
 package main
 
-import "testing"
+import (
+    "testing"
+    "log"
+)
 
 // test spaces
 func TestCleanUpSubmitArgs(t *testing.T) {
@@ -36,4 +39,13 @@ func TestScoptAppArgs(t *testing.T) {
   if "http://spark-example.jar" != submitArgs[4] {
      t.Errorf("Failed to parse submit args..")
   }
+}
+
+// test spaces
+func TestStringLongArgs(t *testing.T) {
+    _, args := sparkSubmitArgSetup()
+    log.Printf("WOAH")
+    inputArgs := "--driver-java-options='-Djava.something=somethingelse -Djava.parameter=setting'  --conf spark.cores.max=8"
+    cleanUpSubmitArgs(inputArgs, args.boolVals)
+
 }
