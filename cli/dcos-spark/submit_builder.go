@@ -435,20 +435,6 @@ func appendToProperty(propValue, toAppend string, args *sparkArgs) {
 	}
 }
 
-func getBase64Content(path string) string {
-	log.Printf("Opening file %s", path)
-	data, err := ioutil.ReadFile(path)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	var encodebuf bytes.Buffer
-	encoder := base64.NewEncoder(base64.StdEncoding, &encodebuf)
-	encoder.Write(data)
-	encoder.Close() // must be called before returning string to ensure flush
-	return encodebuf.String()
-}
-
 func buildSubmitJson(cmd *SparkCommand) (string, error) {
 	// first, import any values in the provided properties file (space separated "key val")
 	// then map applicable envvars
