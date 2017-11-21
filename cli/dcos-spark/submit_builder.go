@@ -357,17 +357,15 @@ ARGLOOP:
 					continue ARGLOOP
 				}
 			}
-			// merge this --key against the following val to get --key=val
-			if strings.HasPrefix(arg, "'") {
-				arg = strings.TrimPrefix(arg, "'")
-			}
 
+			// if this is the beginning of a string of args e.g. '-Djava.option=setting -Djava.paramter=nonsense'
+			// we want to remove the leading single quote. Also remove internal quotes when the arg == --conf or some
+			// other named configuration
+			// e.g.: next = spark.driver.extraJavaOptions='-Djava.something=somethingelse
+			// arg =  --conf
+			arg = strings.TrimPrefix(arg, "'")
 			next := args[i + 1]
-
-			if strings.Contains(next, "'") {
-				next = strings.Replace(next, "'", "", -1)
-			}
-
+			next = strings.Replace(next, "'", "", -1)  // remove internal quotes
 			argsEquals = append(argsEquals, arg + "=" + next)
 			i += 2
 		} else if strings.HasSuffix(arg, "'") {

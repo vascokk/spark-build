@@ -11,11 +11,11 @@ func TestCleanUpSubmitArgs(t *testing.T) {
 	inputArgs := "--conf    spark.app.name=kerberosStreaming   --conf spark.cores.max=8"
 	submitArgs, _ := cleanUpSubmitArgs(inputArgs, args.boolVals)
 	if "--conf=spark.app.name=kerberosStreaming" != submitArgs[0] {
-		t.Errorf("Failed to reduce spaces while cleaning submit args.")
+		t.Error("Failed to reduce spaces while cleaning submit args.")
 	}
 
 	if "--conf=spark.cores.max=8" != submitArgs[1] {
-		t.Errorf("Failed to reduce spaces while cleaning submit args.")
+		t.Error("Failed to reduce spaces while cleaning submit args.")
 	}
 }
 
@@ -27,17 +27,17 @@ func TestScoptAppArgs(t *testing.T) {
   	submitArgs, appFlags := cleanUpSubmitArgs(inputArgs, args.boolVals)
 
   	if "--input1" != appFlags[0] {
-  		t.Errorf("Failed to parse app args.")
+  		t.Error("Failed to parse app args.")
 	}
 	if "value1" != appFlags[1] {
-		t.Errorf("Failed to parse app args.")
+		t.Error("Failed to parse app args.")
 	}
 
 	if "--driver-memory=512M" != submitArgs[2] {
-		t.Errorf("Failed to parse submit args..")
+		t.Error("Failed to parse submit args..")
   	}
   	if "http://spark-example.jar" != submitArgs[4] {
-  		t.Errorf("Failed to parse submit args..")
+  		t.Error("Failed to parse submit args..")
   		}
 }
 
@@ -52,12 +52,17 @@ func testLongArgInternal(inputArgs string, t *testing.T) {
 
 	java_options_arg := submitargs[0]
 
+
 	if !strings.Contains(java_options_arg, "-Djava.something=somethingelse") {
-		t.Errorf("Failed to correctly parse first java option")
+		t.Error("Failed to correctly parse first java option")
+	}
+
+	if strings.Contains(java_options_arg, "'") {
+		t.Errorf("Failed to strip single quotes from args %s", java_options_arg)
 	}
 
 	if !strings.Contains(java_options_arg, "-Djava.parameter=setting") {
-		t.Errorf("Failed to correctly parse second java option")
+		t.Error("Failed to correctly parse second java option")
 	}
 }
 
