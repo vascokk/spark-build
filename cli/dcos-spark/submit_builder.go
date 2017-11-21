@@ -313,6 +313,7 @@ func cleanUpSubmitArgs(argsStr string, boolVals []*sparkVal) ([]string, []string
 	argsEquals := make([]string, 0)
 	appFlags := make([]string, 0)
 	i := 0
+	inQuotes := false
 ARGLOOP:
 	for i < len(args) {
 		arg := args[i]
@@ -343,11 +344,16 @@ ARGLOOP:
 			}
 			break
 		}
+		// Parse Spark configuration:
 		// join this arg to the next arg if...:
 		// 1. we're not at the last arg in the array
 		// 2. we start with "--"
 		// 3. we don't already contain "=" (already joined)
 		// 4. we aren't a boolean value (no val to join)
+
+
+		// if this is a configuration flag like --conf or --driver-driver-options that doesn't have a
+		// '=' for assignment.
 		if i < len(args)-1 && strings.HasPrefix(arg, "--") && !strings.Contains(arg, "=") {
 			// check for boolean:
 			for _, boolVal := range boolVals {
@@ -365,19 +371,28 @@ ARGLOOP:
 			// arg =  --conf
 			arg = strings.TrimPrefix(arg, "'")
 			next := args[i + 1]
+			if strings.HasPrefix(next, "'") {  // e.g. --driver-java-options '-Djava.config=setting... <-- next
+				inQuotes = true
+			}
 			next = strings.Replace(next, "'", "", -1)  // remove internal quotes
 			argsEquals = append(argsEquals, arg + "=" + next)
 			i += 2
-		} else if strings.HasSuffix(arg, "'") {
+		} else if strings.HasSuffix(arg, "'") {  // attach the final arg to the string of args without the quote
+			inQuotes = false  // has suffix means we're out of the quotes
 			arg = strings.TrimSuffix(arg, "'")
 			argsEquals[len(argsEquals) - 1] = argsEquals[len(argsEquals) - 1] + " " + arg
 			i += 1
 		} else {
-			if strings.Contains(arg, "'") {
-				arg = strings.Replace(arg, "'", "", -1)
+			cleanedArg := strings.Replace(arg, "'", "", -1)
+			if inQuotes { // join this arg to the last one because it's all in quotes
+				argsEquals[len(argsEquals) - 1] = argsEquals[len(argsEquals) - 1] + " " + cleanedArg
+			} else {
+				if strings.Contains(arg, "'") {  // e.g. --driver-java-options='-Djava.firstConfig=firstSetting
+					inQuotes = true
+				}
+				// already joined or at the end, pass through
+				argsEquals = append(argsEquals, cleanedArg)
 			}
-			// already joined or at the end, pass through:
-			argsEquals = append(argsEquals, arg)
 			i += 1
 		}
 	}

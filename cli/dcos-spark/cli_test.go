@@ -42,38 +42,37 @@ func TestScoptAppArgs(t *testing.T) {
 }
 
 
-func testLongArgInternal(inputArgs string, t *testing.T) {
-	_, args := sparkSubmitArgSetup()
-
+func testLongArgInternal(inputArgs string, expectedArgs []string, t *testing.T) {
+	_, args := sparkSubmitArgSetup()  // setup
 	submitargs, _ := cleanUpSubmitArgs(inputArgs, args.boolVals)
-	if len(submitargs) != 2 {
+	if len(submitargs) != 2 {  // should have 1 arg that's all the java options and one that's the spark cores config
 		t.Errorf("Failed to parse %s, should have 2 args, got %s", inputArgs, len(submitargs))
 	}
-
 	java_options_arg := submitargs[0]
-
-
-	if !strings.Contains(java_options_arg, "-Djava.something=somethingelse") {
-		t.Error("Failed to correctly parse first java option")
-	}
-
-	if strings.Contains(java_options_arg, "'") {
-		t.Errorf("Failed to strip single quotes from args %s", java_options_arg)
-	}
-
-	if !strings.Contains(java_options_arg, "-Djava.parameter=setting") {
-		t.Error("Failed to correctly parse second java option")
+	for i, a := range expectedArgs {
+		if !strings.Contains(java_options_arg, a) {
+			t.Errorf("Expected to find %s at index %d", a, i)
+		}
 	}
 }
 
 // test long args
 func TestStringLongArgs(t *testing.T) {
-	inputArgs := "--driver-java-options '-Djava.something=somethingelse -Djava.parameter=setting' --conf spark.cores.max=8"
-	inputArgs = "--conf spark.driver.extraJavaOptions='-Djava.something=somethingelse -Djava.parameter=setting' --conf spark.cores.max=8"
-	testLongArgInternal(inputArgs, t)
-	inputArgs = "--executor-java-options '-Djava.something=somethingelse -Djava.parameter=setting' --conf spark.cores.max=8"
-	testLongArgInternal(inputArgs, t)
-	inputArgs = "--conf spark.executor.extraJavaOptions='-Djava.something=somethingelse -Djava.parameter=setting' --conf spark.cores.max=8"
-	testLongArgInternal(inputArgs, t)
-}
+	java_options := []string{"-Djava.firstConfig=firstSetting", "-Djava.secondConfig=secondSetting"}
+	inputArgs := "--driver-java-options '-Djava.firstConfig=firstSetting -Djava.secondConfig=secondSetting' --conf spark.cores.max=8"
+	testLongArgInternal(inputArgs, java_options, t)
+	inputArgs = "--driver-java-options='-Djava.firstConfig=firstSetting -Djava.secondConfig=secondSetting' --conf spark.cores.max=8"
+	testLongArgInternal(inputArgs, java_options, t)
+	inputArgs = "--conf spark.driver.extraJavaOptions='-Djava.firstConfig=firstSetting -Djava.secondConfig=secondSetting' --conf spark.cores.max=8"
+	testLongArgInternal(inputArgs, java_options, t)
+	inputArgs = "--executor-java-options '-Djava.firstConfig=firstSetting -Djava.secondConfig=secondSetting' --conf spark.cores.max=8"
+	testLongArgInternal(inputArgs, java_options, t)
+	inputArgs = "--conf spark.executor.extraJavaOptions='-Djava.firstConfig=firstSetting -Djava.secondConfig=secondSetting' --conf spark.cores.max=8"
+	testLongArgInternal(inputArgs, java_options, t)
 
+	java_options = append(java_options, "-Djava.thirdConfig=thirdSetting")
+	inputArgs = "--driver-java-option='-Djava.firstConfig=firstSetting -Djava.secondConfig=secondSetting -Djava.thirdConfig=thirdSetting' --conf spark.cores.max=8"
+	testLongArgInternal(inputArgs, java_options, t)
+
+
+}
