@@ -31,6 +31,7 @@ type sparkVal struct {
 func (f *sparkVal) flag(section *kingpin.Application) *kingpin.Clause {
 	return section.Flag(f.flagName, fmt.Sprintf("%s (%s)", f.desc, f.propName))
 }
+
 func newSparkVal(flagName, propName, desc string) *sparkVal {
 	return &sparkVal{flagName, propName, desc, "", false}
 }
@@ -169,6 +170,10 @@ Args:
 	args.stringVals = append(args.stringVals, val)
 
 	val = newSparkVal("driver-java-options", "spark.driver.extraJavaOptions", "Extra Java options to pass to the driver.")
+	val.flag(submit).StringVar(&val.s)
+	args.stringVals = append(args.stringVals, val)
+
+	val = newSparkVal("executor-java-options", "spark.executor.extraJavaOptions", "Extra Java options to pass to the executors.")
 	val.flag(submit).StringVar(&val.s)
 	args.stringVals = append(args.stringVals, val)
 
@@ -343,7 +348,7 @@ ARGLOOP:
 		// 2. we start with "--"
 		// 3. we don't already contain "=" (already joined)
 		// 4. we aren't a boolean value (no val to join)
-		if i < len(args)-1 && strings.HasPrefix(arg, "--") && !strings.Contains(arg, "=") && strings.HasSuffix(arg, "'") {
+		if i < len(args)-1 && strings.HasPrefix(arg, "--") && !strings.Contains(arg, "=") {
 			// check for boolean:
 			for _, boolVal := range boolVals {
 				if boolVal.flagName == arg[2:] {
@@ -353,9 +358,26 @@ ARGLOOP:
 				}
 			}
 			// merge this --key against the following val to get --key=val
-			argsEquals = append(argsEquals, arg+"="+args[i+1])
+			if strings.HasPrefix(arg, "'") {
+				arg = strings.TrimPrefix(arg, "'")
+			}
+
+			next := args[i + 1]
+
+			if strings.Contains(next, "'") {
+				next = strings.Replace(next, "'", "", -1)
+			}
+
+			argsEquals = append(argsEquals, arg + "=" + next)
 			i += 2
+		} else if strings.HasSuffix(arg, "'") {
+			arg = strings.TrimSuffix(arg, "'")
+			argsEquals[len(argsEquals) - 1] = argsEquals[len(argsEquals) - 1] + " " + arg
+			i += 1
 		} else {
+			if strings.Contains(arg, "'") {
+				arg = strings.Replace(arg, "'", "", -1)
+			}
 			// already joined or at the end, pass through:
 			argsEquals = append(argsEquals, arg)
 			i += 1
@@ -432,12 +454,6 @@ func appendToProperty(propValue, toAppend string, args *sparkArgs) {
 		args.properties[propValue] += "," + toAppend
 	}
 }
-
-func splitCleanedArgString(argsString string) []string {
-	log.Printf("Got args %s", argsString)
-	return strings.Split(argsString, " ")
-}
-
 
 func buildSubmitJson(cmd *SparkCommand) (string, error) {
 	// first, import any values in the provided properties file (space separated "key val")
