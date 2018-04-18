@@ -270,7 +270,7 @@ def teardown_spark():
     _run_janitor()
 
 
-def _scala_test_jar_url():
+def scala_test_jar_url():
     return s3.http_url(os.path.basename(os.environ["SCALA_TEST_JAR_PATH"]))
 
 
