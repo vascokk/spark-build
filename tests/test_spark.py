@@ -10,7 +10,6 @@
 import logging
 import os
 import pytest
-import json
 import shakedown
 
 import sdk_utils

@@ -10,13 +10,14 @@ const image = "mesosphere/spark"
 const driverCores = "1"
 const maxCores = "1"
 const driverMemory = "512M"
-const space = "TEST_SPACE"
 const appJar = "http://spark-example.jar"
 const mainClass = "org.apache.spark.examples.SparkPi"
 const principal = "client@local"
 const keytab_prefixed = "__dcos_base64__keytab"
 const keytab = "keytab"
 const sparkAuthSecret = "spark-auth-secret"
+const marathonAppId = "spark-app"
+var marathonConfig = map[string]interface{}{ "app": map[string]interface{}{ "id": marathonAppId }}
 
 // test spaces
 func TestCleanUpSubmitArgs(t *testing.T) {
@@ -66,7 +67,6 @@ func TestPayloadSimple(t *testing.T) {
 		"subId",
 		inputArgs,
 		image,
-		space,
 		make(map[string]string),
 		"",
 		false,
@@ -74,7 +74,7 @@ func TestPayloadSimple(t *testing.T) {
 		0,
 		"",
 	}
-	payload, err := buildSubmitJson(&cmd)
+	payload, err := buildSubmitJson(&cmd, marathonConfig)
 
 	m := make(map[string]interface{})
 
@@ -97,18 +97,18 @@ func TestPayloadSimple(t *testing.T) {
 		"spark.cores.max": maxCores,
 		"spark.mesos.executor.docker.forcePullImage": "true",
 		"spark.mesos.executor.docker.image": image,
-		"spark.mesos.task.labels": fmt.Sprintf("DCOS_SPACE:%s", space),
+		"spark.mesos.task.labels": fmt.Sprintf("DCOS_SPACE:%s", marathonAppId),
 		"spark.ssl.noCertVerification": "true",
 		"spark.executor.memory": "1G", // default
 		"spark.submit.deployMode": "cluster",
-		"spark.mesos.driver.labels": fmt.Sprintf("DCOS_SPACE:%s", space),
+		"spark.mesos.driver.labels": fmt.Sprintf("DCOS_SPACE:%s", marathonAppId),
 		"spark.driver.memory": driverMemory,
 		"spark.jars": appJar,
 	}
 
 	v, ok := m["sparkProperties"].(map[string]interface{})
 	if !ok {
-		t.Errorf("%s", ok)
+		t.Errorf("%v+", ok)
 	}
 
 	checkProps(v, stringProps, t)
@@ -141,7 +141,6 @@ func checkSecret(secretPath, secretFile string, t *testing.T) {
 		"subId",
 		inputArgs,
 		image,
-		space,
 		make(map[string]string),
 		"",
 		false,
@@ -149,7 +148,7 @@ func checkSecret(secretPath, secretFile string, t *testing.T) {
 		0,
 		"",
 	}
-	payload, err := buildSubmitJson(&cmd)
+	payload, err := buildSubmitJson(&cmd, marathonConfig)
 
 	m := make(map[string]interface{})
 
@@ -161,7 +160,7 @@ func checkSecret(secretPath, secretFile string, t *testing.T) {
 
 	v, ok := m["sparkProperties"].(map[string]interface{})
 	if !ok {
-		t.Errorf("%s", ok)
+		t.Errorf("%v+", ok)
 	}
 
 	secretProps := map[string]string{
@@ -188,7 +187,6 @@ func TestSaslSecret(t *testing.T) {
 		"subId",
 		inputArgs,
 		image,
-		space,
 		make(map[string]string),
 		"",
 		false,
@@ -196,7 +194,7 @@ func TestSaslSecret(t *testing.T) {
 		0,
 		"",
 	}
-	payload, err := buildSubmitJson(&cmd)
+	payload, err := buildSubmitJson(&cmd, marathonConfig)
 
 	m := make(map[string]interface{})
 
@@ -218,7 +216,7 @@ func TestSaslSecret(t *testing.T) {
 
 	v, ok := m["sparkProperties"].(map[string]interface{})
 	if !ok {
-		t.Errorf("%s", ok)
+		t.Errorf("%v+", ok)
 	}
 
 	checkProps(v, stringProps, t)

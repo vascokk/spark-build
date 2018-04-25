@@ -107,31 +107,31 @@ $(CLI_DIST_DIR):
 	mv $(ROOT_DIR)/cli/dcos-spark/dcos-spark-darwin $@/
 	mv $(ROOT_DIR)/cli/dcos-spark/dcos-spark-linux $@/
 	mv $(ROOT_DIR)/cli/dcos-spark/dcos-spark.exe $@/
-	mv $(ROOT_DIR)/cli/python/dist/*.whl $@/
 
 cli: $(CLI_DIST_DIR)
 
-UNIVERSE_URL_PATH ?= stub-universe-url
-HISTORY_URL_PATH := $(UNIVERSE_URL_PATH).history
+UNIVERSE_URL_PATH ?= $(ROOT_DIR)/stub-universe-url
 $(UNIVERSE_URL_PATH): $(CLI_DIST_DIR) docker-dist
 	UNIVERSE_URL_PATH=$(UNIVERSE_URL_PATH) \
 	TEMPLATE_CLI_VERSION=$(CLI_VERSION) \
+	TEMPLATE_HTTPS_PROTOCOL='https://' \
 	TEMPLATE_DOCKER_IMAGE=`cat docker-dist` \
-		$(TOOLS_DIR)/publish_aws.py \
+		$(TOOLS_DIR)/build_package.sh \
 		spark \
-        $(ROOT_DIR)/universe/ \
-        $(CLI_DIST_DIR)/dcos-spark-darwin \
-        $(CLI_DIST_DIR)/dcos-spark-linux \
-        $(CLI_DIST_DIR)/dcos-spark.exe \
-        $(CLI_DIST_DIR)/*.whl; \
-    UNIVERSE_URL_PATH=$(HISTORY_URL_PATH) \
-    TEMPLATE_DEFAULT_DOCKER_IMAGE=`cat docker-dist` \
-        $(TOOLS_DIR)/publish_aws.py \
-        spark-history \
-        $(ROOT_DIR)/history/package/; \
-    cat $(HISTORY_URL_PATH) >> $(UNIVERSE_URL_PATH);
+		$(ROOT_DIR) \
+		-a $(CLI_DIST_DIR)/dcos-spark-darwin \
+		-a $(CLI_DIST_DIR)/dcos-spark-linux \
+		-a $(CLI_DIST_DIR)/dcos-spark.exe \
+		aws;
 
-stub-universe: $(UNIVERSE_URL_PATH)
+HISTORY_URL_PATH := $(ROOT_DIR)/$(UNIVERSE_URL_PATH).history
+$(HISTORY_URL_PATH): docker-dist
+	DOCKER_IMAGE=`cat docker-dist` \
+	UNIVERSE_URL_PATH=$(HISTORY_URL_PATH) \
+		$(MAKE) --directory=history universe; \
+	cat $(HISTORY_URL_PATH) >> $(UNIVERSE_URL_PATH);
+
+stub-universe: $(UNIVERSE_URL_PATH) $(HISTORY_URL_PATH)
 
 DCOS_SPARK_TEST_JAR_PATH ?= $(ROOT_DIR)/dcos-spark-scala-tests-assembly-0.1-SNAPSHOT.jar
 $(DCOS_SPARK_TEST_JAR_PATH):
@@ -175,25 +175,22 @@ $(MESOS_SPARK_TEST_JAR_PATH): mesos-spark-integration-tests
 	sbt clean compile test
 	cp test-runner/target/scala-2.11/mesos-spark-integration-tests-assembly-0.1.0.jar $(MESOS_SPARK_TEST_JAR_PATH)
 
-PYTEST_ARGS ?= -s -vv -m sanity
 test: test-env $(DCOS_SPARK_TEST_JAR_PATH) $(MESOS_SPARK_TEST_JAR_PATH) $(UNIVERSE_URL_PATH) cluster-url
 	source $(ROOT_DIR)/test-env/bin/activate
 	if [ -z $(CLUSTER_URL) ]; then \
-	    if [ `cat cluster_info.json | jq .key_helper` == 'true' ]; then \
-	      cat cluster_info.json | jq -r .ssh_private_key > test_cluster_ssh_key; \
-	      chmod 600 test_cluster_ssh_key; \
+		if [ `cat cluster_info.json | jq .key_helper` == 'true' ]; then \
+		  cat cluster_info.json | jq -r .ssh_private_key > test_cluster_ssh_key; \
+		  chmod 600 test_cluster_ssh_key; \
 		  eval `ssh-agent -s`; \
 		  ssh-add test_cluster_ssh_key; \
-	    fi; \
+		fi; \
 	fi; \
-	export CLUSTER_URL=`cat cluster-url`
-	$(TOOLS_DIR)/./dcos_login.py; \
-    export STUB_UNIVERSE_URL=`cat $(UNIVERSE_URL_PATH)`; \
+	export CLUSTER_URL=`cat cluster-url` STUB_UNIVERSE_URL=`cat $(UNIVERSE_URL_PATH)`; \
 	SCALA_TEST_JAR_PATH=$(DCOS_SPARK_TEST_JAR_PATH) \
-	  TEST_JAR_PATH=$(MESOS_SPARK_TEST_JAR_PATH) \
-	  S3_BUCKET=$(S3_BUCKET) \
-	  S3_PREFIX=$(S3_PREFIX) \
-	  py.test $(PYTEST_ARGS) $(ROOT_DIR)/tests
+	TEST_JAR_PATH=$(MESOS_SPARK_TEST_JAR_PATH) \
+	S3_BUCKET=$(S3_BUCKET) \
+	S3_PREFIX=$(S3_PREFIX) \
+		$(ROOT_DIR)/test.sh
 
 clean: clean-dist clean-cluster
 	rm -rf test-env

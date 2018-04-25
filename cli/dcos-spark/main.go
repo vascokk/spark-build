@@ -33,12 +33,17 @@ type SparkCommand struct {
 }
 
 func (cmd *SparkCommand) runSubmit(a *kingpin.Application, e *kingpin.ParseElement, c *kingpin.ParseContext) error {
-	jsonPayload, err := buildSubmitJson(cmd)
+	marathonConfig, err := fetchMarathonConfig()
+	if err != nil {
+		return err
+	}
+
+	jsonPayload, err := buildSubmitJson(cmd, marathonConfig)
 	if err != nil {
 		return err
 	}
 	responseBytes, err := client.HTTPServicePostJSON(
-		fmt.Sprintf("/v1/submissions/create/%s", cmd.submissionId), jsonPayload)
+		fmt.Sprintf("/v1/submissions/create/%s", cmd.submissionId), []byte(jsonPayload))
 	if err != nil {
 		log.Fatalf("Failed to create submission with error %s", err)
 		//return err
