@@ -66,10 +66,11 @@ def streaming_job_running(job_name):
 def require_spark(service_name=None, use_hdfs=False, use_history=False, marathon_group=None,
                   strict_mode=is_strict(), user="nobody"):
     LOGGER.info("Ensuring Spark is installed.")
-    _require_package(
+    sdk_install.install_package(
         SPARK_PACKAGE_NAME,
         service_name,
-        _get_spark_options(use_hdfs, use_history, marathon_group, strict_mode, user))
+        0,
+        additional_options=_get_spark_options(use_hdfs, use_history, marathon_group, strict_mode, user))
     _wait_for_spark(service_name)
     _require_spark_cli()
 
