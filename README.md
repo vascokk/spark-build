@@ -53,7 +53,7 @@ most common way to build a Spark package during development.
 
 
 ### Package
-The above distribution needs to be bundled into a Docker image and paried with
+The above distribution needs to be bundled into a Docker image and paired with
 a CLI in order to complete the package.
 
 ```bash
@@ -72,7 +72,7 @@ unless overridden with `GIT_COMMIT`. Note: the login is a separate command
 to allow using the current Docker user session without providing parameters
 
 ```bash
-make stub-universe-url
+make stub-universe
 ```
 This will build a "stub" universe (i.e. singleton repo) containing a
 Spark package and upload it. The aforementioned build targets of docker-dist

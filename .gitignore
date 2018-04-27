@@ -18,6 +18,5 @@ mesos-spark-integration-tests-assembly-*.jar
 dcos-spark-scala-tests-assembly-*.jar
 
 cluster-url
-stub-universe-url
-stub-universe-url.history
+stub-universe-url*
 config.yaml

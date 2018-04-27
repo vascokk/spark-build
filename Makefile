@@ -1,12 +1,11 @@
 ROOT_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
-TOOLS_DIR := $(ROOT_DIR)/tools
 BUILD_DIR := $(ROOT_DIR)/build
-CLI_DIST_DIR := $(BUILD_DIR)/cli_dist
 DIST_DIR := $(BUILD_DIR)/dist
 GIT_COMMIT := $(shell git rev-parse HEAD)
 
 S3_BUCKET ?= infinity-artifacts
-S3_PREFIX ?= autodelete7d
+# Default to putting artifacts under a random directory, which will get cleaned up automatically:
+S3_PREFIX ?= autodelete7d/spark/test-`date +%Y%m%d-%H%M%S`-`cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1`
 SPARK_REPO_URL ?= https://github.com/mesosphere/spark
 
 .ONESHELL:
@@ -100,38 +99,41 @@ docker-dist: $(DIST_DIR)
 	docker push $(DOCKER_DIST_IMAGE)
 	echo "$(DOCKER_DIST_IMAGE)" > $@
 
-CLI_VERSION ?= $(shell jq -r ".cli_version" "$(ROOT_DIR)/manifest.json")
-$(CLI_DIST_DIR):
-	$(MAKE) --directory=cli all
-	mkdir -p $@
-	mv $(ROOT_DIR)/cli/dcos-spark/dcos-spark-darwin $@/
-	mv $(ROOT_DIR)/cli/dcos-spark/dcos-spark-linux $@/
-	mv $(ROOT_DIR)/cli/dcos-spark/dcos-spark.exe $@/
 
-cli: $(CLI_DIST_DIR)
+cli:
+	$(ROOT_DIR)/cli/build.sh
+
 
 UNIVERSE_URL_PATH ?= $(ROOT_DIR)/stub-universe-url
-$(UNIVERSE_URL_PATH): $(CLI_DIST_DIR) docker-dist
-	UNIVERSE_URL_PATH=$(UNIVERSE_URL_PATH) \
-	TEMPLATE_CLI_VERSION=$(CLI_VERSION) \
-	TEMPLATE_HTTPS_PROTOCOL='https://' \
-	TEMPLATE_DOCKER_IMAGE=`cat docker-dist` \
-		$(TOOLS_DIR)/build_package.sh \
-		spark \
-		$(ROOT_DIR) \
-		-a $(CLI_DIST_DIR)/dcos-spark-darwin \
-		-a $(CLI_DIST_DIR)/dcos-spark-linux \
-		-a $(CLI_DIST_DIR)/dcos-spark.exe \
-		aws;
+stub-universe: docker-dist cli
+	@if [ -n "$(STUB_UNIVERSE_URL)" ]; then
+		echo "Using provided Spark stub universe: $(STUB_UNIVERSE_URL)"
+		echo "$(STUB_UNIVERSE_URL)" > $(UNIVERSE_URL_PATH)
+	else
+		UNIVERSE_URL_PATH=$(ROOT_DIR)/stub-universe-url.spark \
+		TEMPLATE_HTTPS_PROTOCOL='https://' \
+		TEMPLATE_DOCKER_IMAGE=`cat docker-dist` \
+			$(ROOT_DIR)/tools/build_package.sh \
+			spark \
+			$(ROOT_DIR) \
+			-a $(ROOT_DIR)/cli/dcos-spark-darwin \
+			-a $(ROOT_DIR)/cli/dcos-spark-linux \
+			-a $(ROOT_DIR)/cli/dcos-spark.exe \
+			aws
+		cat $(ROOT_DIR)/stub-universe-url.spark > $(UNIVERSE_URL_PATH)
+	fi
+	@if [ -n "$(HISTORY_STUB_UNIVERSE_URL)" ]; then
+		echo "Using provided History stub universe: $(HISTORY_STUB_UNIVERSE_URL)"
+		echo "$(HISTORY_STUB_UNIVERSE_URL)" >> $(UNIVERSE_URL_PATH)
+	else
+		UNIVERSE_URL_PATH=$(ROOT_DIR)/stub-universe-url.history \
+		DOCKER_IMAGE=`cat docker-dist` \
+		TEMPLATE_DEFAULT_DOCKER_IMAGE=${DOCKER_IMAGE} \
+		TEMPLATE_HTTPS_PROTOCOL='https://' \
+		        $(ROOT_DIR)/tools/build_package.sh spark-history $(ROOT_DIR)/history aws
+		cat $(ROOT_DIR)/stub-universe-url.history >> $(UNIVERSE_URL_PATH)
+	fi
 
-HISTORY_URL_PATH := $(ROOT_DIR)/$(UNIVERSE_URL_PATH).history
-$(HISTORY_URL_PATH): docker-dist
-	DOCKER_IMAGE=`cat docker-dist` \
-	UNIVERSE_URL_PATH=$(HISTORY_URL_PATH) \
-		$(MAKE) --directory=history universe; \
-	cat $(HISTORY_URL_PATH) >> $(UNIVERSE_URL_PATH);
-
-stub-universe: $(UNIVERSE_URL_PATH) $(HISTORY_URL_PATH)
 
 DCOS_SPARK_TEST_JAR_PATH ?= $(ROOT_DIR)/dcos-spark-scala-tests-assembly-0.1-SNAPSHOT.jar
 $(DCOS_SPARK_TEST_JAR_PATH):
@@ -139,30 +141,28 @@ $(DCOS_SPARK_TEST_JAR_PATH):
 	sbt assembly
 	cp $(ROOT_DIR)/tests/jobs/scala/target/scala-2.11/dcos-spark-scala-tests-assembly-0.1-SNAPSHOT.jar $(DCOS_SPARK_TEST_JAR_PATH)
 
-test-env:
-	python3 -m venv test-env
-	source test-env/bin/activate
-	pip3 install -r tests/requirements.txt
-
 CF_TEMPLATE_URL ?= https://s3.amazonaws.com/downloads.mesosphere.io/dcos-enterprise/testing/master/cloudformation/ee.single-master.cloudformation.json
 config.yaml:
 	$(eval export DCOS_LAUNCH_CONFIG_BODY)
 	echo "$$DCOS_LAUNCH_CONFIG_BODY" > config.yaml
 
 cluster-url: config.yaml
-	@if [ -z $(CLUSTER_URL) ]; then \
-	  source $(ROOT_DIR)/test-env/bin/activate; \
-	  dcos-launch create; \
-	  dcos-launch wait; \
-	  echo https://`dcos-launch describe | jq -r .masters[0].public_ip` > $@; \
-	else \
-	  echo "CLUSTER_URL detected in env; not deploying a new cluster"; \
-	  echo $(CLUSTER_URL) > $@; \
-	fi; \
+	@if [ -n $(CLUSTER_URL) ]; then
+		echo "Using provided CLUSTER_URL: $(CLUSTER_URL)"
+		echo "$(CLUSTER_URL)" > $@
+	else
+		echo "Launching new cluster (no CLUSTER_URL provided)"
+		dcos-launch create
+		dcos-launch wait
+		echo https://`dcos-launch describe | jq -r .masters[0].public_ip` > $@
+	fi
 
 clean-cluster:
-	@dcos-launch delete || echo "Error deleting cluster"
-	[ ! -e cluster-url ] || rm cluster-url
+	@if [ -n $(CLUSTER_URL) ]; then
+		echo "Not deleting cluster provided by external CLUSTER_URL: $(CLUSTER_URL)"
+	else
+		dcos-launch delete || echo "Error deleting cluster"
+	fi
 
 mesos-spark-integration-tests:
 	git clone https://github.com/typesafehub/mesos-spark-integration-tests $(ROOT_DIR)/mesos-spark-integration-tests
@@ -175,29 +175,25 @@ $(MESOS_SPARK_TEST_JAR_PATH): mesos-spark-integration-tests
 	sbt clean compile test
 	cp test-runner/target/scala-2.11/mesos-spark-integration-tests-assembly-0.1.0.jar $(MESOS_SPARK_TEST_JAR_PATH)
 
-test: test-env $(DCOS_SPARK_TEST_JAR_PATH) $(MESOS_SPARK_TEST_JAR_PATH) $(UNIVERSE_URL_PATH) cluster-url
-	source $(ROOT_DIR)/test-env/bin/activate
-	if [ -z $(CLUSTER_URL) ]; then \
-		if [ `cat cluster_info.json | jq .key_helper` == 'true' ]; then \
-		  cat cluster_info.json | jq -r .ssh_private_key > test_cluster_ssh_key; \
-		  chmod 600 test_cluster_ssh_key; \
-		  eval `ssh-agent -s`; \
-		  ssh-add test_cluster_ssh_key; \
-		fi; \
-	fi; \
-	export CLUSTER_URL=`cat cluster-url` STUB_UNIVERSE_URL=`cat $(UNIVERSE_URL_PATH)`; \
-	SCALA_TEST_JAR_PATH=$(DCOS_SPARK_TEST_JAR_PATH) \
-	TEST_JAR_PATH=$(MESOS_SPARK_TEST_JAR_PATH) \
+test: $(DCOS_SPARK_TEST_JAR_PATH) $(MESOS_SPARK_TEST_JAR_PATH) stub-universe cluster-url
+	if [ -z $(CLUSTER_URL) ]; then
+		if [ `cat cluster_info.json | jq .key_helper` == 'true' ]; then
+			cat cluster_info.json | jq -r .ssh_private_key > test_cluster_ssh_key
+			chmod 600 test_cluster_ssh_key
+			eval `ssh-agent -s`
+			ssh-add test_cluster_ssh_key
+		fi
+	fi
+	CLUSTER_URL=`cat $(ROOT_DIR)/cluster-url` \
+	STUB_UNIVERSE_URL=`cat $(UNIVERSE_URL_PATH)` \
+	CUSTOM_DOCKER_ARGS="-e DCOS_SPARK_TEST_JAR_PATH=/build/`basename ${DCOS_SPARK_TEST_JAR_PATH}` -e MESOS_SPARK_TEST_JAR_PATH=/build/`basename ${MESOS_SPARK_TEST_JAR_PATH}` -e S3_PREFIX=$(S3_PREFIX) -e S3_BUCKET=$(S3_BUCKET)" \
 	S3_BUCKET=$(S3_BUCKET) \
-	S3_PREFIX=$(S3_PREFIX) \
-		$(ROOT_DIR)/test.sh
+		$(ROOT_DIR)/test.sh -m nick
 
-clean: clean-dist clean-cluster
-	rm -rf test-env
-	rm -rf $(CLI_DIST_DIR)
-	for f in  "$(MESOS_SPARK_TEST_JAR_PATH)" "$(DCOS_SPARK_TEST_JAR_PATH)" "cluster-url" "$(UNIVERSE_URL_PATH)" "$(HISTORY_URL_PATH)" "docker-build" "docker-dist" ; do \
-		[ ! -e $$f ] || rm $$f; \
-	done; \
+clean: clean-cluster
+	for f in  "$(MESOS_SPARK_TEST_JAR_PATH)" "$(DCOS_SPARK_TEST_JAR_PATH)" "$(UNIVERSE_URL_PATH)" "$(HISTORY_URL_PATH)" "docker-build" "docker-dist" ; do
+		[ ! -e $$f ] || rm $$f
+	done
 
 
 
@@ -225,4 +221,4 @@ ssh_user: core
 endef
 
 
-.PHONY: clean clean-dist clean-cluster cli manifest-dist dev-dist prod-dist docker-login test
+.PHONY: clean clean-dist cluster-url clean-cluster cli stub-universe manifest-dist dev-dist prod-dist docker-login test
