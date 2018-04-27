@@ -7,7 +7,7 @@
             "properties": {
                 "name": {
                     "default": "spark-history",
-                    "description": "The app name for the Spark History Server.  The service will be available at http://<dcos_url>/service/<name>/",
+                    "description": "The app name for the Spark History Server.  The service will be available at {{https-protocol}}<dcos_url>/service/<name>/",
                     "type": "string"
                 },
                 "cpus": {
@@ -33,7 +33,7 @@
                     "default": "root"
                 },
                 "docker-image": {
-                    "description": "Docker image to run in.  See https://hub.docker.com/r/mesosphere/spark/tags/ for options.",
+                    "description": "Docker image to run in.  See {{https-protocol}}hub.docker.com/r/mesosphere/spark/tags/ for options.",
                     "type": "string",
                     "default": "{{default-docker-image}}"
                 },

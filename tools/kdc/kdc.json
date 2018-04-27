@@ -3,10 +3,11 @@
   "instances": 1,
   "cpus": 1,
   "mem": 512,
+  "user": "nobody",
   "container": {
     "type": "MESOS",
     "docker": {
-      "image": "nvaziri/kdc:dev",
+      "image": "nvaziri/kdc:mesosphere",
       "forcePullImage": true
     }
   },
@@ -19,14 +20,7 @@
     {
       "port": 2500,
       "name": "kdc"
-    },
-    {
-      "port": 8000,
-      "name": "http"
     }
   ],
-  "requirePorts": true,
-  "env": {
-    "LOG_LEVEL": "LOG_DEBUG"
-  }
+  "requirePorts": true
 }

@@ -1,67 +1,55 @@
+import logging
 import os
+import os.path
 
-from boto.s3.connection import S3Connection
-from boto.s3.key import Key
+import botocore.session
 
-
-conn = None
-def _get_conn():
-    global conn
-    if conn is None:
-        conn = S3Connection(
-            os.environ['AWS_ACCESS_KEY_ID'],
-            os.environ['AWS_SECRET_ACCESS_KEY'],
-            security_token=os.getenv('AWS_SESSION_TOKEN'))
-    return conn
-
+log = logging.getLogger(__name__)
 
 def s3n_url(filename):
     return "s3n://{}/{}/{}".format(
-        os.environ["S3_BUCKET"],
-        os.environ["S3_PREFIX"],
-        filename)
-
-
-def s3_http_url(filename):
-    return "http://{bucket}.s3.amazonaws.com/{prefix}/{file}".format(
-        bucket=os.environ["S3_BUCKET"],
-        prefix=os.environ["S3_PREFIX"],
-        file=filename)
-
-
-def upload_file(file_path):
-    bucket = _get_bucket()
-    basename = os.path.basename(file_path)
-
-    content_type = _get_content_type(basename)
-
-    path = _path(basename)
-    key = Key(bucket, path)
-    key.metadata = {'Content-Type': content_type}
-    key.set_contents_from_filename(file_path)
-    key.make_public()
-
-
-def get_key(filename):
-    bucket = _get_bucket()
-    path = _path(filename)
-    return bucket.get_key(path)
-
-
-def list(prefix):
-    path = _path(prefix)
-    return _get_bucket().list(path)
-
-
-def http_url(filename):
-    return "http://{0}.s3.amazonaws.com/{1}/{2}".format(
         os.environ['S3_BUCKET'],
         os.environ['S3_PREFIX'],
         filename)
 
 
-def _get_bucket():
-    return _get_conn().get_bucket(os.environ['S3_BUCKET'])
+def http_url(filename):
+    return "http://{}.s3.amazonaws.com/{}/{}".format(
+        os.environ['S3_BUCKET'],
+        os.environ['S3_PREFIX'],
+        filename)
+
+
+def upload_file(file_path):
+    basename = os.path.basename(file_path)
+    path = _path(basename)
+    log.info('Uploading {} => {} ...'.format(file_path, path))
+    response = _get_conn().put_object(
+        ACL='public-read',
+        Bucket=os.environ['S3_BUCKET'],
+        ContentType=_get_content_type(basename),
+        Key=path,
+        Body=open(file_path))
+    log.info('Uploaded {} => {}, response: {}'.format(file_path, path, response))
+
+
+def list(prefix):
+    path = _path(prefix)
+    log.info('Getting list for {} => {} ...'.format(prefix, path))
+    response = _get_conn().list_objects_v2(
+        Bucket=os.environ['S3_BUCKET'],
+        Prefix=path)
+    log.info('List for {} => {}: {}'.format(prefix, path, response))
+    return [obj['Key'] for obj in response['Contents']]
+
+
+__conn = None
+def _get_conn():
+    global __conn
+    if __conn is None:
+        # Uses AWS_* envvars automatically:
+        __conn = botocore.session.get_session().create_client('s3')
+    return __conn
 
 
 def _path(basename):

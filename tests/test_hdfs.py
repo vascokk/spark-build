@@ -12,7 +12,6 @@ import sdk_hosts
 import sdk_install
 import sdk_marathon
 import sdk_security
-import sdk_tasks
 
 from tests import hdfs_auth
 from tests import utils
@@ -134,7 +133,10 @@ def setup_hdfs_client(hdfs_with_kerberos):
 
 
 def hdfs_cmd(cmd):
-    sdk_tasks.task_exec(HDFS_CLIENT_ID, "bin/hdfs dfs -{}".format(cmd))
+    sdk_cmd.service_task_exec(
+        HDFS_SERVICE_NAME,
+        HDFS_CLIENT_ID,
+        "bin/hdfs dfs -{}".format(cmd))
 
 
 @pytest.fixture(scope='module')

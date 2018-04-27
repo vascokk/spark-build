@@ -131,12 +131,12 @@ def test_pipeline(kerberos_flag, stop_count, jar_uri, keytab_secret, spark_app_n
     # arguments to the application
     producer_args = " ".join([broker_dns, big_file, topic, kerberos_flag])
 
-    uris = "spark.mesos.uris=http://norvig.com/big.txt"
+    uris = "spark.mesos.uris={}".format(big_file_url)
 
     if kerberized and jaas_uri is None:
         jaas_path = os.path.join(THIS_DIR, "resources", "spark-kafka-client-jaas.conf")
         s3.upload_file(jaas_path)
-        _uri = s3.s3_http_url("spark-kafka-client-jaas.conf")
+        _uri = s3.http_url("spark-kafka-client-jaas.conf")
         uris += ",{}".format(_uri)
     else:
         uris += ",{}".format(jaas_uri)
