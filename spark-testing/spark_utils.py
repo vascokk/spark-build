@@ -11,8 +11,7 @@ import sdk_install
 import sdk_security
 import sdk_utils
 
-from tests import s3
-
+import spark_s3
 
 DCOS_SPARK_TEST_JAR_PATH_ENV = "DCOS_SPARK_TEST_JAR_PATH"
 DCOS_SPARK_TEST_JAR_PATH = os.getenv(DCOS_SPARK_TEST_JAR_PATH_ENV, None)
@@ -131,7 +130,8 @@ def submit_job(
         service_name=SPARK_SERVICE_NAME,
         args=[],
         spark_user=SPARK_USER,
-        driver_role=SPARK_DRIVER_ROLE):
+        driver_role=SPARK_DRIVER_ROLE,
+        verbose=True):
     if sdk_utils.is_strict_mode():
         args += [
             '--conf spark.mesos.driverEnv.SPARK_USER={}'.format(spark_user),
@@ -142,8 +142,11 @@ def submit_job(
         '--conf spark.mesos.role={}'.format(driver_role)
     ]
     submit_args = ' '.join([' '.join(args), app_url, app_args])
+    verbose_flag = "--verbose" if verbose else ""
     stdout = sdk_cmd.svc_cli(
-        SPARK_PACKAGE_NAME, service_name, 'run --verbose --submit-args="{}"'.format(submit_args))
+        SPARK_PACKAGE_NAME,
+        service_name,
+        'run {} --submit-args="{}"'.format(verbose_flag, submit_args))
     return re.search(r"Submission id: (\S+)", stdout).group(1)
 
 
@@ -160,8 +163,8 @@ def check_job_output(task_id, expected_output):
 
 
 def upload_file(file_path):
-    s3.upload_file(file_path)
-    return s3.http_url(os.path.basename(file_path))
+    spark_s3.upload_file(file_path)
+    return spark_s3.http_url(os.path.basename(file_path))
 
 
 def upload_dcos_test_jar():
@@ -184,7 +187,7 @@ def upload_mesos_test_jar():
 
 def dcos_test_jar_url():
     if DCOS_SPARK_TEST_JAR_URL is None:
-        return s3.http_url(os.path.basename(DCOS_SPARK_TEST_JAR_PATH))
+        return spark_s3.http_url(os.path.basename(DCOS_SPARK_TEST_JAR_PATH))
     return DCOS_SPARK_TEST_JAR_URL
 
 
