@@ -28,6 +28,7 @@ def deploy_dispatchers(num_dispatchers, service_name_base, output_file, options_
 
             options["service"]["UCR_containerizer"] = True
             options["service"]["docker-image"] = "mesosphere/spark-dev:931ca56273af913d103718376e2fbc04be7cbde0"
+            options["service"]["role"] = "dispatcher-{}-role".format(i)
 
             shakedown.install_package(
                 SPARK_PACKAGE_NAME,
