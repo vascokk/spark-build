@@ -110,13 +110,13 @@ cli:
 	$(ROOT_DIR)/cli/dcos-spark/build.sh
 
 
-UNIVERSE_URL_PATH ?= $(ROOT_DIR)/stub-universe-urls
+UNIVERSE_URL_PATH ?= $(ROOT_DIR)/stub-universe-urls.txt
 stub-universe-url: docker-dist cli
 	if [ -n "$(STUB_UNIVERSE_URL)" ]; then
 		echo "Using provided Spark stub universe: $(STUB_UNIVERSE_URL)"
 		echo "$(STUB_UNIVERSE_URL)" > $(UNIVERSE_URL_PATH)
 	else
-		UNIVERSE_URL_PATH=$(ROOT_DIR)/stub-universe-url.spark \
+		UNIVERSE_URL_PATH=$(ROOT_DIR)/stub-universe-url.tmp \
 		TEMPLATE_HTTPS_PROTOCOL='https://' \
 		TEMPLATE_DOCKER_IMAGE=`cat docker-dist` \
 			$(ROOT_DIR)/tools/build_package.sh \
@@ -126,18 +126,18 @@ stub-universe-url: docker-dist cli
 			-a $(ROOT_DIR)/cli/dcos-spark/dcos-spark-linux \
 			-a $(ROOT_DIR)/cli/dcos-spark/dcos-spark.exe \
 			aws
-		cat $(ROOT_DIR)/stub-universe-url.spark > $(UNIVERSE_URL_PATH)
+		cat $(ROOT_DIR)/stub-universe-url.tmp > $(UNIVERSE_URL_PATH)
 	fi
 	if [ -n "$(HISTORY_STUB_UNIVERSE_URL)" ]; then
 		echo "Using provided History stub universe: $(HISTORY_STUB_UNIVERSE_URL)"
 		echo "$(HISTORY_STUB_UNIVERSE_URL)" >> $(UNIVERSE_URL_PATH)
 	else
-		UNIVERSE_URL_PATH=$(ROOT_DIR)/stub-universe-url.history \
+		UNIVERSE_URL_PATH=$(ROOT_DIR)/stub-universe-url.tmp \
 		DOCKER_IMAGE=`cat docker-dist` \
 		TEMPLATE_DEFAULT_DOCKER_IMAGE=${DOCKER_IMAGE} \
 		TEMPLATE_HTTPS_PROTOCOL='https://' \
 		        $(ROOT_DIR)/tools/build_package.sh spark-history $(ROOT_DIR)/history aws
-		cat $(ROOT_DIR)/stub-universe-url.history >> $(UNIVERSE_URL_PATH)
+		cat $(ROOT_DIR)/stub-universe-url.tmp >> $(UNIVERSE_URL_PATH)
 	fi
 
 
@@ -163,11 +163,11 @@ cluster-url: config.yaml
 		echo "Launched cluster: $(CLUSTER_URL)"
 
 		if [ "`cat cluster_info.json | jq .key_helper`" == "true" ]; then
-			echo "Adding cluster SSH key to ssh-agent"
-			cat cluster_info.json | jq -r .ssh_private_key > test_cluster_ssh_key
-			chmod 600 test_cluster_ssh_key
-			eval `ssh-agent -s`
-			ssh-add test_cluster_ssh_key
+			ssh_key_path=$(HOME)/.ssh/ccm.pem
+			echo "Extracting cluster SSH key to $${ssh_key_path}"
+			mkdir -p `dirname $${ssh_key_path}`
+			cat cluster_info.json | jq -r .ssh_private_key > $${ssh_key_path}
+			chmod 600 $${ssh_key_path}
 		else
 			echo "WARNING: No SSH key found in cluster_info.json"
 		fi
