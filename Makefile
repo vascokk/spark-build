@@ -34,53 +34,59 @@ $(SPARK_DIR):
 
 # Builds a quick dev version of spark from the mesosphere fork
 dev-dist: $(SPARK_DIR)
-	cd $(SPARK_DIR)
+	pushd $(SPARK_DIR)
 	rm -rf spark-*.tgz
 	build/sbt -Pmesos "-Phadoop-$(HADOOP_VERSION)" -Phive -Phive-thriftserver package
 	rm -rf /tmp/spark-SNAPSHOT*
 	mkdir -p /tmp/spark-SNAPSHOT/jars
-	cp -r assembly/target/scala*/jars/* /tmp/spark-SNAPSHOT/jars
+	cp -a assembly/target/scala*/jars/* /tmp/spark-SNAPSHOT/jars
 	mkdir -p /tmp/spark-SNAPSHOT/examples/jars
-	cp -r examples/target/scala*/jars/* /tmp/spark-SNAPSHOT/examples/jars
-	for f in /tmp/spark-SNAPSHOT/examples/jars/*; do \
-		name=$$(basename "$$f"); \
-		if [ -f "/tmp/spark-SNAPSHOT/jars/$${name}" ]; then \
-			rm "/tmp/spark-SNAPSHOT/examples/jars/$${name}"; \
-		fi; \
-	done; \
-	cp -r data /tmp/spark-SNAPSHOT/
+	cp -a examples/target/scala*/jars/* /tmp/spark-SNAPSHOT/examples/jars
+	for f in /tmp/spark-SNAPSHOT/examples/jars/*; do
+		name=$$(basename "$$f")
+		if [ -f "/tmp/spark-SNAPSHOT/jars/$${name}" ]; then
+			rm "/tmp/spark-SNAPSHOT/examples/jars/$${name}"
+		fi;
+	done
+	cp -a data /tmp/spark-SNAPSHOT/
 	mkdir -p /tmp/spark-SNAPSHOT/conf
 	cp conf/* /tmp/spark-SNAPSHOT/conf
-	cp -r bin /tmp/spark-SNAPSHOT
-	cp -r sbin /tmp/spark-SNAPSHOT
-	cp -r python /tmp/spark-SNAPSHOT
-	cd /tmp
-	tar czf spark-SNAPSHOT.tgz spark-SNAPSHOT
+	cp -a bin /tmp/spark-SNAPSHOT
+	cp -a sbin /tmp/spark-SNAPSHOT
+	cp -a python /tmp/spark-SNAPSHOT
+	popd
+	pushd /tmp
+	filename=spark-SNAPSHOT.tgz
+	find spark-SNAPSHOT/ | sort # log files
+	tar czf $${filename} spark-SNAPSHOT/
+	popd
 	mkdir -p $(DIST_DIR)
-	cp /tmp/spark-SNAPSHOT.tgz $(DIST_DIR)/
+	mv /tmp/$${filename} $(DIST_DIR)/
+	rm -rf /tmp/spark-SNAPSHOT*
+	echo "Built: $(DIST_DIR)/$${filename}"
 
 prod-dist: $(SPARK_DIR)
-	cd $(SPARK_DIR)
+	pushd $(SPARK_DIR)
 	rm -rf spark-*.tgz
-	if [ -f make-distribution.sh ]; then \
-		./make-distribution.sh --tgz "-Phadoop-$(HADOOP_VERSION)" -Phive -Phive-thriftserver -DskipTests; \
-	else \
-		if [ -n $(does_profile_exist,mesos) ]; then \
-			MESOS_PROFILE="-Pmesos"; \
-		else \
-			MESOS_PROFILE=""; \
-		fi; \
-		./dev/make-distribution.sh --tgz "$${MESOS_PROFILE}" "-Phadoop-$(HADOOP_VERSION)" -Pnetlib-lgpl -Psparkr -Phive -Phive-thriftserver -DskipTests; \
-	fi; \
+	if [ -n "$(does_profile_exist,mesos)" ]; then
+		MESOS_PROFILE="-Pmesos"
+	else
+		MESOS_PROFILE=""
+	fi
+	./dev/make-distribution.sh --tgz "$${MESOS_PROFILE}" "-Phadoop-$(HADOOP_VERSION)" -Pnetlib-lgpl -Psparkr -Phive -Phive-thriftserver -DskipTests
+	filename=`ls spark-*.tgz`
 	mkdir -p $(DIST_DIR)
-	cp spark-*.tgz $(DIST_DIR)
+	mv $${filename} $(DIST_DIR)
+	echo "Built: $(DIST_DIR)/$${filename}"
 
 # this target serves as default dist type
 $(DIST_DIR):
 	$(MAKE) manifest-dist
 
 clean-dist:
-	@[ ! -e $(DIST_DIR) ] || rm -rf $(DIST_DIR)
+	if [ -e "$(DIST_DIR)" ]; then
+		rm -rf $(DIST_DIR)
+	fi
 
 docker-login:
 	docker login --email="$(DOCKER_EMAIL)" --username="$(DOCKER_USERNAME)" --password="$(DOCKER_PASSWORD)"
@@ -106,7 +112,7 @@ cli:
 
 UNIVERSE_URL_PATH ?= $(ROOT_DIR)/stub-universe-urls
 stub-universe-url: docker-dist cli
-	@if [ -n "$(STUB_UNIVERSE_URL)" ]; then
+	if [ -n "$(STUB_UNIVERSE_URL)" ]; then
 		echo "Using provided Spark stub universe: $(STUB_UNIVERSE_URL)"
 		echo "$(STUB_UNIVERSE_URL)" > $(UNIVERSE_URL_PATH)
 	else
@@ -122,7 +128,7 @@ stub-universe-url: docker-dist cli
 			aws
 		cat $(ROOT_DIR)/stub-universe-url.spark > $(UNIVERSE_URL_PATH)
 	fi
-	@if [ -n "$(HISTORY_STUB_UNIVERSE_URL)" ]; then
+	if [ -n "$(HISTORY_STUB_UNIVERSE_URL)" ]; then
 		echo "Using provided History stub universe: $(HISTORY_STUB_UNIVERSE_URL)"
 		echo "$(HISTORY_STUB_UNIVERSE_URL)" >> $(UNIVERSE_URL_PATH)
 	else
@@ -147,18 +153,28 @@ config.yaml:
 	echo "$$DCOS_LAUNCH_CONFIG_BODY" > config.yaml
 
 cluster-url: config.yaml
-	@if [ -n $(CLUSTER_URL) ]; then
+	if [ -n "$(CLUSTER_URL)" ]; then
 		echo "Using provided CLUSTER_URL: $(CLUSTER_URL)"
-		echo "$(CLUSTER_URL)" > $@
 	else
-		echo "Launching new cluster (no CLUSTER_URL provided)"
+		echo "Launching new cluster (no CLUSTER_URL specified)"
 		dcos-launch create
 		dcos-launch wait
-		echo https://`dcos-launch describe | jq -r .masters[0].public_ip` > $@
+		export CLUSTER_URL=https://`dcos-launch describe | jq -r .masters[0].public_ip`
+		echo "Launched cluster: $(CLUSTER_URL)"
+
+		if [ "`cat cluster_info.json | jq .key_helper`" == "true" ]; then
+			echo "Adding cluster SSH key to ssh-agent"
+			cat cluster_info.json | jq -r .ssh_private_key > test_cluster_ssh_key
+			chmod 600 test_cluster_ssh_key
+			eval `ssh-agent -s`
+			ssh-add test_cluster_ssh_key
+		else
+			echo "WARNING: No SSH key found in cluster_info.json"
+		fi
 	fi
 
 clean-cluster:
-	@if [ -n $(CLUSTER_URL) ]; then
+	if [ -n "$(CLUSTER_URL)" ]; then
 		echo "Not deleting cluster provided by external CLUSTER_URL: $(CLUSTER_URL)"
 	else
 		dcos-launch delete || echo "Error deleting cluster"
@@ -176,15 +192,6 @@ $(MESOS_SPARK_TEST_JAR_PATH): mesos-spark-integration-tests
 	cp test-runner/target/scala-2.11/mesos-spark-integration-tests-assembly-0.1.0.jar $(MESOS_SPARK_TEST_JAR_PATH)
 
 test: $(DCOS_SPARK_TEST_JAR_PATH) $(MESOS_SPARK_TEST_JAR_PATH) stub-universe-url cluster-url
-	if [ -z $(CLUSTER_URL) ]; then
-		if [ `cat cluster_info.json | jq .key_helper` == 'true' ]; then
-			cat cluster_info.json | jq -r .ssh_private_key > test_cluster_ssh_key
-			chmod 600 test_cluster_ssh_key
-			eval `ssh-agent -s`
-			ssh-add test_cluster_ssh_key
-		fi
-	fi
-	CLUSTER_URL=`cat $(ROOT_DIR)/cluster-url` \
 	STUB_UNIVERSE_URL=`cat $(UNIVERSE_URL_PATH)` \
 	CUSTOM_DOCKER_ARGS="-e DCOS_SPARK_TEST_JAR_PATH=/build/`basename ${DCOS_SPARK_TEST_JAR_PATH}` -e MESOS_SPARK_TEST_JAR_PATH=/build/`basename ${MESOS_SPARK_TEST_JAR_PATH}` -e S3_PREFIX=$(S3_PREFIX) -e S3_BUCKET=$(S3_BUCKET)" \
 	S3_BUCKET=$(S3_BUCKET) \

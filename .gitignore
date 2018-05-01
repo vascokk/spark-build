@@ -12,6 +12,7 @@ test-env/
 .pytest_cache/
 logs/
 
+/spark/
 docker-dist
 mesos-spark-integration-tests/
 mesos-spark-integration-tests-assembly-*.jar
