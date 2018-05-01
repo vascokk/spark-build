@@ -21,6 +21,7 @@ Options:
     --kerberos-realm <realm>     the Kerberos realm used to render the principal
     --log-level <level>          log level [default: INFO]
     --mem <n>                    amount of memory (mb) to use per dispatcher [default: 1024.0]
+    --options-json <file>        a file containing installation options in JSON format
     --package-name <name>        name of the Spark package name [default: spark]
     --role <role>                Mesos role registered by dispatcher [default: *]
     --service-account <account>  Mesos principal registered by dispatcher
@@ -45,17 +46,28 @@ import sys
 # file.
 
 
-def deploy_dispatchers(num_dispatchers, service_name_base, output_file, options):
+def deploy_dispatchers(
+    num_dispatchers,
+    service_name_base,
+    output_file,
+    options,
+    options_file=None
+):
     with open(output_file, "w") as outfile:
         for i in range(0, num_dispatchers):
             service_name = "{}-{}".format(service_name_base, str(i))
 
-            options["service"] = options.get("service", {})
-            options["service"]["name"] = service_name
+            if options_file is not None:
+                shakedown.install_package(
+                    package_name=arguments['--package-name'],
+                    service_name=service_name,
+                    options_file=options_file)
+            else:
+                shakedown.install_package(
+                    package_name=arguments['--package-name'],
+                    service_name=service_name,
+                    options_json=options)
 
-            shakedown.install_package(
-                arguments['--package-name'],
-                options_json=options)
             outfile.write("{}\n".format(service_name))
 
 
@@ -95,4 +107,5 @@ if __name__ == "__main__":
         int(arguments['<num_dispatchers>']),
         arguments['<service_name_base>'],
         arguments['<output_file>'],
-        options)
+        options,
+        arguments['--options-json'])
