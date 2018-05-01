@@ -191,11 +191,31 @@ $(MESOS_SPARK_TEST_JAR_PATH): mesos-spark-integration-tests
 	sbt clean compile test
 	cp test-runner/target/scala-2.11/mesos-spark-integration-tests-assembly-0.1.0.jar $(MESOS_SPARK_TEST_JAR_PATH)
 
-test: $(DCOS_SPARK_TEST_JAR_PATH) $(MESOS_SPARK_TEST_JAR_PATH) stub-universe-url cluster-url
+aws-credentials:
+	creds_file=$(HOME)/.aws/credentials
+	if [ -f "$${creds_file}" ]; then # maws should create this
+		echo "Using credentials in $${creds_file}"
+	else
+		if [ -n "$${AWS_DEV_ACCESS_KEY_ID}" -a -n "$${AWS_DEV_SECRET_ACCESS_KEY}}" ]; then # CI environment (direct invocation)
+			export AWS_ACCESS_KEY_ID=$${AWS_DEV_ACCESS_KEY_ID} AWS_SECRET_ACCESS_KEY=$${AWS_DEV_SECRET_ACCESS_KEY}
+		fi
+		if [ -n "$${AWS_ACCESS_KEY_ID}" -a -n "$${AWS_SECRET_ACCESS_KEY}}" ]; then # CI environment (via docker run)
+			echo "Writing regular env credentials to $${creds_file}"
+			mkdir -p `dirname $${creds_file}`
+			echo "[default]" > $${creds_file}
+			echo "aws_access_key_id = $${AWS_ACCESS_KEY_ID}" >> $${creds_file}
+			echo "aws_secret_access_key = $${AWS_SECRET_ACCESS_KEY}" >> $${creds_file}
+		else
+			echo "Missing credentials file $${creds_file} and no AWS credentials in env"
+			exit 1
+		fi
+	fi
+
+test: $(DCOS_SPARK_TEST_JAR_PATH) $(MESOS_SPARK_TEST_JAR_PATH) aws-credentials stub-universe-url cluster-url
 	STUB_UNIVERSE_URL=`cat $(UNIVERSE_URL_PATH)` \
 	CUSTOM_DOCKER_ARGS="-e DCOS_SPARK_TEST_JAR_PATH=/build/`basename ${DCOS_SPARK_TEST_JAR_PATH}` -e MESOS_SPARK_TEST_JAR_PATH=/build/`basename ${MESOS_SPARK_TEST_JAR_PATH}` -e S3_PREFIX=$(S3_PREFIX) -e S3_BUCKET=$(S3_BUCKET)" \
 	S3_BUCKET=$(S3_BUCKET) \
-		$(ROOT_DIR)/test.sh -m nick
+		$(ROOT_DIR)/test.sh
 
 clean: clean-cluster
 	for f in  "$(MESOS_SPARK_TEST_JAR_PATH)" "$(DCOS_SPARK_TEST_JAR_PATH)" "$(UNIVERSE_URL_PATH)" "$(HISTORY_URL_PATH)" "docker-build" "docker-dist" ; do
