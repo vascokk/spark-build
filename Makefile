@@ -101,11 +101,11 @@ docker-dist: $(DIST_DIR)
 
 
 cli:
-	$(ROOT_DIR)/cli/build.sh
+	$(ROOT_DIR)/cli/dcos-spark/build.sh
 
 
-UNIVERSE_URL_PATH ?= $(ROOT_DIR)/stub-universe-url
-stub-universe: docker-dist cli
+UNIVERSE_URL_PATH ?= $(ROOT_DIR)/stub-universe-urls
+stub-universe-url: docker-dist cli
 	@if [ -n "$(STUB_UNIVERSE_URL)" ]; then
 		echo "Using provided Spark stub universe: $(STUB_UNIVERSE_URL)"
 		echo "$(STUB_UNIVERSE_URL)" > $(UNIVERSE_URL_PATH)
@@ -116,9 +116,9 @@ stub-universe: docker-dist cli
 			$(ROOT_DIR)/tools/build_package.sh \
 			spark \
 			$(ROOT_DIR) \
-			-a $(ROOT_DIR)/cli/dcos-spark-darwin \
-			-a $(ROOT_DIR)/cli/dcos-spark-linux \
-			-a $(ROOT_DIR)/cli/dcos-spark.exe \
+			-a $(ROOT_DIR)/cli/dcos-spark/dcos-spark-darwin \
+			-a $(ROOT_DIR)/cli/dcos-spark/dcos-spark-linux \
+			-a $(ROOT_DIR)/cli/dcos-spark/dcos-spark.exe \
 			aws
 		cat $(ROOT_DIR)/stub-universe-url.spark > $(UNIVERSE_URL_PATH)
 	fi
@@ -175,7 +175,7 @@ $(MESOS_SPARK_TEST_JAR_PATH): mesos-spark-integration-tests
 	sbt clean compile test
 	cp test-runner/target/scala-2.11/mesos-spark-integration-tests-assembly-0.1.0.jar $(MESOS_SPARK_TEST_JAR_PATH)
 
-test: $(DCOS_SPARK_TEST_JAR_PATH) $(MESOS_SPARK_TEST_JAR_PATH) stub-universe cluster-url
+test: $(DCOS_SPARK_TEST_JAR_PATH) $(MESOS_SPARK_TEST_JAR_PATH) stub-universe-url cluster-url
 	if [ -z $(CLUSTER_URL) ]; then
 		if [ `cat cluster_info.json | jq .key_helper` == 'true' ]; then
 			cat cluster_info.json | jq -r .ssh_private_key > test_cluster_ssh_key
@@ -221,4 +221,4 @@ ssh_user: core
 endef
 
 
-.PHONY: clean clean-dist cluster-url clean-cluster cli stub-universe manifest-dist dev-dist prod-dist docker-login test
+.PHONY: clean clean-dist cluster-url clean-cluster cli stub-universe-url manifest-dist dev-dist prod-dist docker-login test
