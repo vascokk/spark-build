@@ -1,4 +1,4 @@
-FROM ubuntu:16.04
+FROM tensorflow/tensorflow:latest-gpu-py3
 RUN apt-get update && apt-get install -y \
     bc \
     curl \

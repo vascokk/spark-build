@@ -18,7 +18,7 @@
 # docker build -t spark:git-`git rev-parse --short HEAD` .
 
 # Basing from Mesos image so the Mesos native library is present.
-FROM ubuntu:14.04
+FROM tensorflow/tensorflow:latest-gpu-py3
 
 # Set environment variables.
 ENV DEBIAN_FRONTEND "noninteractive"
@@ -55,7 +55,8 @@ RUN mkdir -p /usr/lib/jvm/ && \
 ENV BOOTSTRAP /opt/mesosphere/bootstrap
 ENV JAVA_HOME /usr/lib/jvm/jre1.8.0_152
 ENV MESOS_NATIVE_JAVA_LIBRARY /opt/mesosphere/libmesos-bundle/lib/libmesos.so
-ENV LD_LIBRARY_PATH /opt/mesosphere/libmesos-bundle/lib/
+#ENV LD_LIBRARY_PATH /opt/mesosphere/libmesos-bundle/lib/
+ENV LD_LIBRARY_PATH /usr/local/cuda/extras/CUPTI/lib64:/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/usr/lib/x86_64-linux-gnu:/opt/mesosphere/libmesos-bundle/lib/
 ENV HADOOP_CONF_DIR /etc/hadoop
 
 RUN mkdir /etc/hadoop
@@ -88,3 +89,5 @@ RUN chmod -R ugo+rw /var/log/
 RUN chmod -R ugo+rw /opt/spark/dist
 
 WORKDIR /opt/spark/dist
+
+ENTRYPOINT ["/bin/bash"]
