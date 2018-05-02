@@ -86,7 +86,7 @@ clean-dist:
 docker-login:
 	docker login --email="$(DOCKER_EMAIL)" --username="$(DOCKER_USERNAME)" --password="$(DOCKER_PASSWORD)"
 
-DOCKER_DIST_IMAGE ?= mesosphere/spark-dev:$(GIT_COMMIT)
+DOCKER_DIST_IMAGE ?= 192.168.128.109/mesosphere/spark-build:latest
 docker-dist: $(DIST_DIR)
 	tar xvf $(DIST_DIR)/spark-*.tgz -C $(DIST_DIR)
 	rm -rf $(BUILD_DIR)/docker
