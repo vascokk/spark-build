@@ -90,4 +90,4 @@ RUN chmod -R ugo+rw /opt/spark/dist
 
 WORKDIR /opt/spark/dist
 
-ENTRYPOINT ["/bin/bash"]
+
