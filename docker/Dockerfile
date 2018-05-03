@@ -56,7 +56,8 @@ ENV BOOTSTRAP /opt/mesosphere/bootstrap
 ENV JAVA_HOME /usr/lib/jvm/jre1.8.0_152
 ENV MESOS_NATIVE_JAVA_LIBRARY /opt/mesosphere/libmesos-bundle/lib/libmesos.so
 #ENV LD_LIBRARY_PATH /opt/mesosphere/libmesos-bundle/lib/
-ENV LD_LIBRARY_PATH /usr/local/cuda/extras/CUPTI/lib64:/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/usr/lib/x86_64-linux-gnu:/opt/mesosphere/libmesos-bundle/lib/
+ENV LD_LIBRARY_PATH /usr/local/cuda-9.0/targets/x86_64-linux/lib:/usr/lib/x86_64-linux-gnu:/usr/local/cuda/extras/CUPTI/lib64:/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/opt/mesosphere/libmesos-bundle/lib/
+
 ENV HADOOP_CONF_DIR /etc/hadoop
 
 RUN mkdir /etc/hadoop
@@ -87,6 +88,10 @@ RUN chmod -R ugo+rw /var/lib/
 RUN chmod -R ugo+rw /var/run/
 RUN chmod -R ugo+rw /var/log/
 RUN chmod -R ugo+rw /opt/spark/dist
+
+WORKDIR /opt/mesosphere/libmesos-bundle/lib/
+RUN rm libstdc++.so.6
+RUN ln -s /usr/lib/x86_64-linux-gnu/libstdc++.so.6 libstdc++.so.6
 
 WORKDIR /opt/spark/dist
 
