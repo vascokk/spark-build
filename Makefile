@@ -14,7 +14,7 @@ SHELL := /bin/bash
 .SHELLFLAGS = -ec
 
 # This image can be used to build spark dist and run tests
-DOCKER_BUILD_IMAGE ?= vascokk/spark-tensorflow:latest
+DOCKER_BUILD_IMAGE ?= vascokk/spark-tensorflow:$(GIT_COMMIT)
 docker-build:
 	docker build -t $(DOCKER_BUILD_IMAGE) .
 	echo $(DOCKER_BUILD_IMAGE) > $@
@@ -86,7 +86,7 @@ clean-dist:
 docker-login:
 	docker login --username="$(DOCKER_USERNAME)" --password="$(DOCKER_PASSWORD)"
 
-DOCKER_DIST_IMAGE ?= vascokk/spark-tensorflow:latest
+DOCKER_DIST_IMAGE ?= vascokk/spark-tensorflow:$(GIT_COMMIT)
 docker-dist: $(DIST_DIR)
 	tar xvf $(DIST_DIR)/spark-*.tgz -C $(DIST_DIR)
 	rm -rf $(BUILD_DIR)/docker
