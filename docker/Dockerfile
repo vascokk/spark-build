@@ -18,7 +18,9 @@
 # docker build -t spark:git-`git rev-parse --short HEAD` .
 
 # Basing from Mesos image so the Mesos native library is present.
-FROM tensorflow/tensorflow:latest-gpu-py3
+
+FROM vascokk/tensorflow:1.7.1-devel-gpu-py3
+#FROM tensorflow/tensorflow:latest-py3
 
 # Set environment variables.
 ENV DEBIAN_FRONTEND "noninteractive"

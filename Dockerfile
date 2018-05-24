@@ -1,4 +1,6 @@
-FROM tensorflow/tensorflow:latest-gpu-py3
+FROM vascokk/tensorflow:1.7.1-devel-gpu-py3
+#FROM tensorflow/tensorflow:latest-py3
+
 RUN apt-get update && apt-get install -y \
     bc \
     curl \
