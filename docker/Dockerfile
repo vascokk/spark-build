@@ -20,7 +20,7 @@
 # Basing from Mesos image so the Mesos native library is present.
 
 FROM vascokk/tensorflow:1.7.1-devel-gpu-py3
-#FROM tensorflow/tensorflow:latest-py3
+#FROM tensorflow/tensorflow:1.7.1-py3
 
 # Set environment variables.
 ENV DEBIAN_FRONTEND "noninteractive"
@@ -57,8 +57,8 @@ RUN mkdir -p /usr/lib/jvm/ && \
 ENV BOOTSTRAP /opt/mesosphere/bootstrap
 ENV JAVA_HOME /usr/lib/jvm/jre1.8.0_152
 ENV MESOS_NATIVE_JAVA_LIBRARY /opt/mesosphere/libmesos-bundle/lib/libmesos.so
-#ENV LD_LIBRARY_PATH /opt/mesosphere/libmesos-bundle/lib/
-ENV LD_LIBRARY_PATH /usr/local/cuda-9.0/targets/x86_64-linux/lib:/usr/lib/x86_64-linux-gnu:/usr/local/cuda/extras/CUPTI/lib64:/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/opt/mesosphere/libmesos-bundle/lib/
+ENV LD_LIBRARY_PATH /opt/mesosphere/libmesos-bundle/lib/
+#ENV LD_LIBRARY_PATH /usr/local/cuda-9.0/targets/x86_64-linux/lib:/usr/lib/x86_64-linux-gnu:/usr/local/cuda/extras/CUPTI/lib64:/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/opt/mesosphere/libmesos-bundle/lib/
 
 ENV HADOOP_CONF_DIR /etc/hadoop
 

@@ -1,5 +1,5 @@
 FROM vascokk/tensorflow:1.7.1-devel-gpu-py3
-#FROM tensorflow/tensorflow:latest-py3
+#FROM tensorflow/tensorflow:1.7.1-py3
 
 RUN apt-get update && apt-get install -y \
     bc \
