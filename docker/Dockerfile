@@ -19,8 +19,8 @@
 
 # Basing from Mesos image so the Mesos native library is present.
 
-FROM vascokk/tensorflow:1.7.1-devel-gpu-py3
-#FROM tensorflow/tensorflow:1.7.1-py3
+#FROM vascokk/tensorflow:1.7.1-devel-gpu-py3
+FROM tensorflow/tensorflow:1.7.1-py3
 
 # Set environment variables.
 ENV DEBIAN_FRONTEND "noninteractive"
