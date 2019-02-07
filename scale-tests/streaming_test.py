@@ -105,7 +105,7 @@ if __name__ == "__main__":
     kafka_pkg_name = args["--kafka-package-name"]
     sdk_cmd.run_raw_cli("package install {} --yes --cli".format(kafka_pkg_name))
 
-    jar_url = args["--jar"] if args["--jar"] else "https://s3-us-west-2.amazonaws.com/infinity-artifacts/soak/spark/dcos-spark-scala-tests-assembly-0.2-SNAPSHOT.jar"
+    jar_url = args["--jar"] if args["--jar"] else "https://s3-us-west-2.amazonaws.com/dcos-spark-universe/soak/spark/dcos-spark-scala-tests-assembly-0.2-SNAPSHOT.jar"
 
     main(dispatchers=dispatchers,
          jar_url=jar_url,

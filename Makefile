@@ -3,19 +3,20 @@ BUILD_DIR := $(ROOT_DIR)/build
 DIST_DIR := $(BUILD_DIR)/dist
 GIT_COMMIT := $(shell git rev-parse HEAD)
 
-SPARK_DEV_DOCKER_IMAGE ?= mesosphere/spark-dev
-AWS_REGION ?= us-west-2
-S3_BUCKET ?= infinity-artifacts
+SPARK_DEV_DOCKER_IMAGE ?= vascokk/spark-dev
+AWS_REGION ?= eu-west-1
+S3_BUCKET ?= dcos-spark-universe
 # Default to putting artifacts under a random directory, which will get cleaned up automatically:
 S3_PREFIX ?= autodelete7d/spark/test-`date +%Y%m%d-%H%M%S`-`cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1`
-SPARK_REPO_URL ?= https://github.com/mesosphere/spark
+SPARK_REPO_URL ?= https://github.com/vascokk/spark     
+# https://github.com/mesosphere/spark
 
 .ONESHELL:
 SHELL := /bin/bash
 .SHELLFLAGS = -ec
 
 # This image can be used to build spark dist and run tests
-DOCKER_BUILD_IMAGE ?= mesosphere/spark-build:$(GIT_COMMIT)
+DOCKER_BUILD_IMAGE ?= vascokk/spark-build:$(GIT_COMMIT)
 docker-build:
 	docker build -t $(DOCKER_BUILD_IMAGE) .
 	echo $(DOCKER_BUILD_IMAGE) > $@
@@ -29,7 +30,7 @@ manifest-dist:
 	popd
 
 HADOOP_VERSION ?= $(shell jq ".default_spark_dist.hadoop_version" "$(ROOT_DIR)/manifest.json")
-SPARK_DIR ?= $(ROOT_DIR)/spark
+SPARK_DIR ?= /home/vasco/work/spark
 $(SPARK_DIR):
 	git clone $(SPARK_REPO_URL) $(SPARK_DIR)
 
@@ -122,18 +123,18 @@ test-jar-checksum:
 	md5sum checksums | cut -d ' ' -f1 > test-jar-checksum
 
 MD5SUM ?= $(shell cat test-jar-checksum)
-DCOS_SPARK_TEST_JAR_URL ?= https://infinity-artifacts.s3.amazonaws.com/autodelete7d/spark/jars/dcos-spark-scala-tests-assembly-0.2-$(MD5SUM).jar 
+DCOS_SPARK_TEST_JAR_URL ?= https://dcos-spark-universe.s3.amazonaws.com/autodelete7d/spark/jars/dcos-spark-scala-tests-assembly-0.2-$(MD5SUM).jar
 DCOS_SPARK_TEST_JAR_PATH ?= $(ROOT_DIR)/dcos-spark-scala-tests-assembly-0.2-SNAPSHOT.jar
 $(DCOS_SPARK_TEST_JAR_PATH): test-jar-checksum
-	if [ ! -f dcos-spark-scala-tests-assembly-0.2-SNAPSHOT.jar ]; then	
-		if wget --spider $(DCOS_SPARK_TEST_JAR_URL) 2>/dev/null; then 	
+	if [ ! -f dcos-spark-scala-tests-assembly-0.2-SNAPSHOT.jar ]; then
+		if wget --spider $(DCOS_SPARK_TEST_JAR_URL) 2>/dev/null; then
 			wget $(DCOS_SPARK_TEST_JAR_URL)
 		else
 			cd tests/jobs/scala
 			sbt assembly
 			cp -v target/scala-2.11/dcos-spark-scala-tests-assembly-0.2-SNAPSHOT.jar dcos-spark-scala-tests-assembly-0.2-$(MD5SUM).jar
 			aws s3 cp --acl public-read dcos-spark-scala-tests-assembly-0.2-$(MD5SUM).jar \
-				s3://infinity-artifacts/autodelete7d/spark/jars/dcos-spark-scala-tests-assembly-0.2-$(MD5SUM).jar
+				s3://dcos-spark-universe/autodelete7d/spark/jars/dcos-spark-scala-tests-assembly-0.2-$(MD5SUM).jar
 		fi
 	fi
 	cp -v dcos-spark-scala-tests-assembly-0.2-$(MD5SUM).jar $@

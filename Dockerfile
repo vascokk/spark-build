@@ -1,4 +1,6 @@
-FROM ubuntu:18.04
+# FROM ubuntu:18.04
+FROM nvidia/cuda:10.0-runtime-ubuntu18.04 
+#tensorflow/tensorflow:1.12.0-gpu-py3
 RUN apt-get update && apt-get install -y \
     bc \
     curl \
@@ -16,9 +18,9 @@ RUN apt-get update && apt-get install -y \
     python3-dev \
     python3-pip \
     python3-venv \
-    python-software-properties \
+    python3-software-properties \
     software-properties-common \
-    wget \
+    wget \    
     zip && \
     rm -rf /var/lib/apt/lists/*
 # install go 1.7
@@ -36,16 +38,18 @@ ENV LANG=C.UTF-8
 ENV GOPATH=/go-tmp
 
 # Build R
-ENV R_VERSION=3.4.0
-ENV R_TGZ=R-${R_VERSION}.tar.gz
-RUN export PATH=/root/packages/bin:$PATH \
-  && cd /tmp \
-  && wget https://cran.r-project.org/src/base/R-3/${R_TGZ} \
-  && tar xf ${R_TGZ} \
-  && cd R-${R_VERSION}/ \
-  && ./configure --with-readline=no --with-x=no CPPFLAGS="-I/root/packages/include" LDFLAGS="-L/root/packages/lib" \
-  && make \
-  && make install
+# RUN apt-get install -y libbz2-dev \
+#    libzzip-dev
+# ENV R_VERSION=3.4.0
+# ENV R_TGZ=R-${R_VERSION}.tar.gz
+# RUN export PATH=/root/packages/bin:$PATH \
+#  && cd /tmp \
+#  && wget https://cran.r-project.org/src/base/R-3/${R_TGZ} \
+#  && tar xf ${R_TGZ} \
+#  && cd R-${R_VERSION}/ \
+#  && ./configure --with-readline=no --with-x=no CPPFLAGS="-I/root/packages/include" LDFLAGS="-L/root/packages/lib" \
+#  && make \
+#  && make install
 
 RUN apt-get update && apt-get install -y apt-transport-https \
   && echo "deb https://dl.bintray.com/sbt/debian /" | tee -a /etc/apt/sources.list.d/sbt.list \

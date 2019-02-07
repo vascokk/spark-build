@@ -27,7 +27,7 @@ Change the spark-build path as necessary and fill in the AWS credentials found
 in `${HOME}/.aws/credentials`, then run the following command:
 
 ```bash
-S3_BUCKET=infinity-artifacts
+S3_BUCKET=dcos-spark-universe
 S3_FOLDER=scale-tests
 SPARK_BUILD_PATH="${HOME}/mesosphere/spark-build"
 JAR_LOCAL_PATH="${SPARK_BUILD_PATH}/tests/jobs/scala/target/scala-2.11/dcos-spark-scala-tests-assembly-0.2-SNAPSHOT.jar"
@@ -47,7 +47,7 @@ Cluster requirements:
 - Package repository containing a version of Spark with quotas. Here are instructions for a permanent one:
 ```bash
 dcos cluster setup ...
-dcos package repo add --index=0 spark-quotas https://universe-converter.mesosphere.com/transform?url=https://infinity-artifacts.s3.amazonaws.com/permanent/spark/assets/scale-testing/stub-universe-spark.json
+dcos package repo add --index=0 spark-quotas https://universe-converter.mesosphere.com/transform?url=https://dcos-spark-universe.s3.amazonaws.com/permanent/spark/assets/scale-testing/stub-universe-spark.json
 ```
 
 ### Getting a shell session that's able to run the scripts
@@ -278,7 +278,7 @@ If you want to run a different JAR make sure to build, upload it and use its pub
 Wait for the dispatchers to come online and run the following command:
 
 ```bash
-JAR=http://infinity-artifacts.s3.amazonaws.com/scale-tests/dcos-spark-scala-tests-assembly-20180612-5fa9420.jar
+JAR=http://dcos-spark-universe.s3.amazonaws.com/scale-tests/dcos-spark-scala-tests-assembly-20180612-5fa9420.jar
 SUBMISSIONS_OUTPUT_FILE="${DISPATCHER_NAME_PREFIX}-submissions.out"
 NUM_PRODUCERS_PER_KAFKA=1
 NUM_CONSUMERS_PER_PRODUCER=1
@@ -414,7 +414,7 @@ echo "There are $agent_count agents to update metrics on"
 
 Set the source for the metrics agent.
 ```bash
-DCOS_METRICS_REPLACEMENT="https://infinity-artifacts.s3.amazonaws.com/dcos-metrics"
+DCOS_METRICS_REPLACEMENT="https://dcos-spark-universe.s3.amazonaws.com/dcos-metrics"
 ```
 
 The following command generates a Marathon app that can be used to replace the `dcos-metrics` agent on each host. Note the use of
@@ -503,7 +503,7 @@ See the script here: https://gist.github.com/benclarkwood/60a3289ecc86de76852aed
 The `beta-prometheus` package is not available in the Universe. Add the following stub:
 ```bash
 dcos package repo remove prometheus-aws
-dcos package repo add --index=0 prometheus-aws https://universe-converter.mesosphere.com/transform?url=https://infinity-artifacts.s3.amazonaws.com/permanent/prometheus/assets/scale-testing-beta/stub-universe-prometheus.json
+dcos package repo add --index=0 prometheus-aws https://universe-converter.mesosphere.com/transform?url=https://dcos-spark-universe.s3.amazonaws.com/permanent/prometheus/assets/scale-testing-beta/stub-universe-prometheus.json
 ```
 
 #### Configure and install

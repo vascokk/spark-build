@@ -44,7 +44,7 @@ log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 
 
-DEFAULT_JAR = 'http://infinity-artifacts.s3.amazonaws.com/scale-tests/dcos-spark-scala-tests-assembly-20180523-fa29ab5.jar'
+DEFAULT_JAR = 'http://dcos-spark-universe.s3.amazonaws.com/scale-tests/dcos-spark-scala-tests-assembly-20180523-fa29ab5.jar'
 PRODUCER_CLASS_NAME = 'KafkaRandomFeeder'
 CONSUMER_CLASS_NAME = 'KafkaWordCount'
 SPARK_PACKAGE_NAME = 'spark'

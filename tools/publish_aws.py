@@ -4,7 +4,7 @@
 # Produces a universe, and uploads it to S3.
 #
 # Env:
-#   S3_BUCKET (default: infinity-artifacts)
+#   S3_BUCKET (default: dcos-spark-universe)
 #   S3_DIR_PATH (default: autdelete7d)
 #   S3_URL (default: s3://${S3_BUCKET}/${S3_DIR_PATH}/<pkg_name>/<random>
 #   ARTIFACT_DIR (default: ...s3.amazonaws.com...)
@@ -128,7 +128,7 @@ class AWSPublisher(object):
 
 
 def s3_urls_from_env(package_name):
-    s3_bucket = os.environ.get("S3_BUCKET") or "infinity-artifacts"
+    s3_bucket = os.environ.get("S3_BUCKET") or "dcos-spark-universe"
     logger.info("Using artifact bucket: {}".format(s3_bucket))
 
     s3_dir_path = os.environ.get("S3_DIR_PATH") or "autodelete7d"
@@ -144,7 +144,7 @@ def s3_urls_from_env(package_name):
             ),
         )
 
-    # sample s3_directory: 'infinity-artifacts/autodelete7d/kafka/20160815-134747-S6vxd0gRQBw43NNy'
+    # sample s3_directory: 'dcos-spark-universe/autodelete7d/kafka/20160815-134747-S6vxd0gRQBw43NNy'
     s3_directory_url = os.environ.get(
         "S3_URL", "s3://{}/{}/{}/{}".format(s3_bucket, s3_dir_path, package_name, s3_dir_name)
     )

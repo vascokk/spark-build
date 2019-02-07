@@ -181,7 +181,7 @@ Required:
 - `AWS_SECRET_ACCESS_KEY`: AWS credential secret (used by `aws`)
 
 Optional:
-- `S3_BUCKET` (default: `infinity-artifacts`): Name of the S3 bucket to use as the upload destination.
+- `S3_BUCKET` (default: `dcos-spark-universe`): Name of the S3 bucket to use as the upload destination.
 - `S3_DIR_PATH` (default: `autodelete7d`): Parent directory on the bucket to deposit the files within. A randomly generated subdirectory will be created within this path.
 - `AWS_UPLOAD_REGION`: manual region to use for the S3 upload
 

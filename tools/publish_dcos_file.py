@@ -3,7 +3,7 @@
 # Uploads .dcos artifacts to S3.
 #
 # Env:
-#   S3_BUCKET (default: infinity-artifacts)
+#   S3_BUCKET (default: dcos-spark-universe)
 #   S3_DIR_PATH (default: autdelete7d)
 #   S3_URL (default: s3://${S3_BUCKET}/${S3_DIR_PATH}/<pkg_name>/<random>
 import json
@@ -51,7 +51,7 @@ class DCOSFilePublisher(object):
                 )
             )
 
-        s3_bucket = os.environ.get('S3_BUCKET', 'infinity-artifacts')
+        s3_bucket = os.environ.get('S3_BUCKET', 'dcos-spark-universe')
         logger.info('Using artifact bucket: {}'.format(s3_bucket))
         self._s3_bucket = s3_bucket
 
@@ -69,8 +69,8 @@ class DCOSFilePublisher(object):
             )
 
         # Sample S3 file url:
-        # Dev : infinity-artifacts/autodelete7d/20160815-134747-S6vxd0gRQBw43NNy/kafka/stub-universe/kafka-stub-universe.dcos
-        # Release : infinity-artifacts/permanent/kafka/1.2.3/kafka-1.2.3.dcos
+        # Dev : dcos-spark-universe/autodelete7d/20160815-134747-S6vxd0gRQBw43NNy/kafka/stub-universe/kafka-stub-universe.dcos
+        # Release : dcos-spark-universe/permanent/kafka/1.2.3/kafka-1.2.3.dcos
         s3_directory_url = os.environ.get('S3_URL',
                                           's3://{}/{}/{}/{}'.format(
                                               s3_bucket,

@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-const image = "mesosphere/spark"
+const image = "vascokk/spark"
 const driverCores = "1"
 const maxCores = "1"
 const driverMemory = "512M"

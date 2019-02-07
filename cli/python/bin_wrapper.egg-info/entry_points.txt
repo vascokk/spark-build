@@ -1,0 +1,3 @@
+[console_scripts]
+dcos-spark = bin_wrapper:main
+

@@ -30,8 +30,8 @@ KAFKA_KEYTAB_SECRET = os.getenv("KAFKA_KEYTAB_SECRET", "__dcos_base64__kafka_key
 DCOS_UID = os.getenv('DCOS_UID')
 DCOS_PASSWORD = os.getenv('DCOS_PASSWORD')
 
-KAFKA_JAAS_URI = "https://s3-us-west-2.amazonaws.com/infinity-artifacts/soak/spark/spark-kafka-client-jaas.conf"
-JAR_URI = "https://s3-us-west-2.amazonaws.com/infinity-artifacts/soak/spark/dcos-spark-scala-tests-assembly-0.2-SNAPSHOT.jar"
+KAFKA_JAAS_URI = "https://s3-us-west-2.amazonaws.com/dcos-spark-universe/soak/spark/spark-kafka-client-jaas.conf"
+JAR_URI = "https://s3-us-west-2.amazonaws.com/dcos-spark-universe/soak/spark/dcos-spark-scala-tests-assembly-0.2-SNAPSHOT.jar"
 TERASORT_JAR='https://downloads.mesosphere.io/spark/examples/spark-terasort-1.1-jar-with-dependencies_2.11.jar'
 TERASORT_MAX_CORES=6
 

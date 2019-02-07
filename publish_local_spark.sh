@@ -93,8 +93,8 @@ if [ "${REBUILD_DOCKER}" = true ]; then
   make docker-build
   export DOCKER_BUILD_IMAGE=`cat docker-build`
 else
-  docker pull mesosphere/spark-build:latest
-  echo mesosphere/spark-build:latest > docker-build
+  # docker pull vascokk/spark-build:3e6f97e9221ef4bce8d18cd939975b46a15bb33f
+  echo vascokk/spark-build:3e6f97e9221ef4bce8d18cd939975b46a15bb33f > docker-build
 fi
 
 if [ "${REBUILD_SPARK}" = true ]; then
